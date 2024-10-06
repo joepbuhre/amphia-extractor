@@ -12,6 +12,21 @@ import (
 func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 
+		isAllowedMethod := (func() bool {
+			switch r.Method {
+			case
+				"GET",
+				"POST":
+				return true
+			}
+			return false
+		})()
+
+		if !isAllowedMethod {
+			log.Printf("no allowed method, got [%s]", r.Method)
+			return
+		}
+
 		w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("origin"))
 		w.Header().Set("Access-Control-Allow-Methods", r.Method)
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
