@@ -11,6 +11,11 @@ import (
 
 func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
+		w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("origin"))
+		w.Header().Set("Access-Control-Allow-Methods", r.Method)
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
 		viper.SetConfigName(".env") // name of config file (without extension)
 		viper.SetConfigType("env")  // REQUIRED if the config file does not have an extension
 		viper.AutomaticEnv()
