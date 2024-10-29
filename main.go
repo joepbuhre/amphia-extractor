@@ -5,6 +5,7 @@ import (
 	"joepbuhre/amphia-agenda-ical/v2/models"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -58,6 +59,11 @@ func main() {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(200)
 
+		minDate, maxDate := getMinMaxDate(shifts)
+
+		models.DeleteMeetingsInRange(config, minDate, maxDate)
+		log.Printf("Deleted all meetings in range of currently fetched (%v to %v)", minDate, maxDate)
+
 		for _, shift := range shifts {
 
 			models.PostShiftToMeetings(config, "", shift)
@@ -74,4 +80,36 @@ func main() {
 
 	log.Println("Server started at :8081")
 	log.Fatal(http.ListenAndServe(":8081", nil))
+}
+
+func getMinMaxDate(shifts []models.Shift) (minDate time.Time, maxDate time.Time) {
+	var err error
+	var beginDate time.Time = time.Now()
+	var endDate time.Time = time.Now()
+
+	minDate = beginDate
+	maxDate = endDate
+
+	for _, shift := range shifts {
+		// Parse Begindate
+		beginDate, err = time.Parse(time.RFC3339, shift.BeginDate)
+		log.Println(beginDate)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Parse Enddate
+		endDate, err = time.Parse(time.RFC3339, shift.EndDate)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if beginDate.Before(minDate) {
+			minDate = beginDate
+		}
+		if endDate.After(maxDate) {
+			maxDate = endDate
+		}
+	}
+	return
 }

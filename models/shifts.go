@@ -8,6 +8,9 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type Department struct {
@@ -45,10 +48,19 @@ func PostShiftToMeetings(config Config, token string, shift Shift) {
 		Timeout: time.Second * 10,
 	}
 
+	var summaryStr string = shift.Description
+	if summaryStr == "" {
+		summaryStr = shift.Remark
+	}
+
+	if summaryStr == "" {
+		summaryStr = shift.Name
+	}
+
 	var meetingRequest MeetingRequest = MeetingRequest{
 		ID:            shift.Id,
 		AgendaID:      config.AgendaId,
-		Summary:       shift.Description,
+		Summary:       cases.Title(language.Dutch).String(summaryStr),
 		Description:   shift.Name,
 		StartDateTime: shift.BeginDate,
 		EndDateTime:   shift.EndDate,
@@ -135,4 +147,43 @@ func MakeRequestWithBearerToken(url string, token string) ([]Shift, error) {
 	}
 
 	return shifts, nil
+}
+
+// DeleteMeetingsInRange
+func DeleteMeetingsInRange(config Config, fromDate time.Time, toDate time.Time) error {
+	method := "DELETE"
+	url := config.BaseUrl
+
+	client := &http.Client{}
+
+	fromDateStr := fromDate.Format("2006-01-02")
+	toDateStr := toDate.Format("2006-01-02")
+
+	url = fmt.Sprintf(url+"&from_date=%s&to_date=%s", fromDateStr, toDateStr)
+
+	req, err := http.NewRequest(method, url, nil)
+
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(io.Reader(res.Body))
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	if res.StatusCode > 399 {
+		return fmt.Errorf("something went wrong %s", string(body))
+	}
+
+	return nil
 }
